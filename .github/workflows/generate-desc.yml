@@ -26,6 +26,9 @@ jobs:
 
       - name: Generate .desc file
         run: |
+          # Use a regex to prefix 'None' with a unique identifier based on line number 
+          # or simply rename all 'None' to be unique within the package context.
+          perl -i -pe 's/\bNone\b/None_$./g' vintagestory.proto
           protoc --include_imports \
                  --descriptor_set_out=vintagestory.desc \
                  vintagestory.proto
