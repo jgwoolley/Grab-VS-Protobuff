@@ -1,0 +1,50 @@
+name: Generate Protobuf Descriptor and Release
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*' # Triggers on tags like v1.0.1, v2.0-beta
+    paths:
+      - "vintagestory.proto"
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create releases
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Generate .desc file
+        run: |
+          protoc --include_imports \
+                 --descriptor_set_out=vintagestory.desc \
+                 vintagestory.proto
+
+      # 1. Always upload as an artifact (for every push to main)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vintagestory-descriptor
+          path: vintagestory.desc
+
+      # 2. Only create a Release if a tag was pushed
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vintagestory.desc
+          body: "Automated build of the Vintage Story protobuf descriptor set."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
